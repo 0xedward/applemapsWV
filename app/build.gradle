@@ -1,11 +1,15 @@
-apply plugin: 'com.android.application'
+plugins {
+    alias(libs.plugins.android.application)
+}
 
 android {
-    compileSdk 34
+    namespace "us.spotco.maps"
+    compileSdk 35
+
     defaultConfig {
         applicationId "us.spotco.maps"
-        minSdkVersion 21
-        targetSdk 34
+        minSdk 21
+        targetSdk 35
         versionCode 39
         versionName "3.9"
     }
@@ -13,12 +17,10 @@ android {
         debug {
             applicationIdSuffix ".debug"
             minifyEnabled true
-            zipAlignEnabled true
         }
         release {
             shrinkResources true
             minifyEnabled true
-            zipAlignEnabled true
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
