@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="us.spotco.maps">
+    package="wv.applemaps">
 
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
@@ -28,63 +28,17 @@
 
                 <data
                     android:scheme="https"
-                    android:host="www.google.com"
-                    android:pathPrefix="/maps" />
+                    android:host="maps.apple.com" />
             </intent-filter>
+<!-- add support for geo links later -->
+<!--            <intent-filter android:label="@string/intent_string">-->
+<!--                <action android:name="android.intent.action.VIEW" />-->
 
-            <intent-filter android:label="@string/intent_string">
-                <action android:name="android.intent.action.VIEW" />
+<!--                <category android:name="android.intent.category.DEFAULT" />-->
+<!--                <category android:name="android.intent.category.BROWSABLE" />-->
 
-                <category android:name="android.intent.category.DEFAULT" />
-                <category android:name="android.intent.category.BROWSABLE" />
-
-                <data
-                    android:scheme="https"
-                    android:host="google.com"
-                    android:pathPrefix="/maps" />
-            </intent-filter>
-
-            <intent-filter android:label="@string/intent_string">
-                <action android:name="android.intent.action.VIEW" />
-
-                <category android:name="android.intent.category.DEFAULT" />
-                <category android:name="android.intent.category.BROWSABLE" />
-
-                <data
-                    android:scheme="https"
-                    android:host="maps.google.com" />
-            </intent-filter>
-
-            <intent-filter android:label="@string/intent_string">
-                <action android:name="android.intent.action.VIEW" />
-
-                <category android:name="android.intent.category.DEFAULT" />
-                <category android:name="android.intent.category.BROWSABLE" />
-
-                <data
-                    android:scheme="https"
-                    android:host="maps.app.goo.gl" />
-            </intent-filter>
-
-            <intent-filter android:label="@string/intent_string">
-                <action android:name="android.intent.action.VIEW" />
-
-                <category android:name="android.intent.category.DEFAULT" />
-                <category android:name="android.intent.category.BROWSABLE" />
-
-                <data
-                    android:scheme="https"
-                    android:host="goo.gl"
-                    android:pathPrefix="/maps" />
-            </intent-filter>
-            <intent-filter android:label="@string/intent_string">
-                <action android:name="android.intent.action.VIEW" />
-
-                <category android:name="android.intent.category.DEFAULT" />
-                <category android:name="android.intent.category.BROWSABLE" />
-
-                <data android:scheme="geo" />
-            </intent-filter>
+<!--                <data android:scheme="geo" />-->
+<!--            </intent-filter>-->
         </activity>
         <meta-data android:name="android.webkit.WebView.MetricsOptOut"
             android:value="true" />

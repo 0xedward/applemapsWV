@@ -1,1 +1,0 @@
-* Fix satellite view not working

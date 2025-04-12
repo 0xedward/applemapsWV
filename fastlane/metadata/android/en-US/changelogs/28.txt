@@ -1,2 +1,0 @@
-* Make the app smaller
-* Removed broken location handling

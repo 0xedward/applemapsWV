@@ -1,3 +1,0 @@
-Allow opening external links
-Translations
-Bugfixes

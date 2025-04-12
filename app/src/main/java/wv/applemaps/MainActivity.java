@@ -14,7 +14,7 @@ GNU Affero General Public License for more details.
 You should have received a copy of the GNU Affero General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 */
-package us.spotco.maps;
+package wv.applemaps;
 
 import android.Manifest;
 import android.app.Activity;
@@ -35,6 +35,7 @@ import android.view.Window;
 import android.view.WindowManager;
 import android.webkit.CookieManager;
 import android.webkit.GeolocationPermissions;
+import android.webkit.URLUtil;
 import android.webkit.WebChromeClient;
 import android.webkit.WebResourceRequest;
 import android.webkit.WebResourceResponse;
@@ -42,10 +43,9 @@ import android.webkit.WebSettings;
 import android.webkit.WebStorage;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
+import android.webkit.WebViewDatabase;
 import android.widget.Toast;
 
-import java.io.UnsupportedEncodingException;
-import java.net.URLDecoder;
 import java.util.ArrayList;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -58,12 +58,12 @@ public class MainActivity extends Activity {
     private final Context context = this;
     private LocationManager locationManager;
 
-    private static final ArrayList<String> allowedDomains = new ArrayList<String>();
-    private static final ArrayList<String> allowedDomainsStart = new ArrayList<String>();
-    private static final ArrayList<String> allowedDomainsEnd = new ArrayList<String>();
-    private static final ArrayList<String> blockedURLs = new ArrayList<String>();
+    private static final ArrayList<String> allowedDomains = new ArrayList<>();
+    private static final ArrayList<String> allowedDomainsStart = new ArrayList<>();
+    private static final ArrayList<String> allowedDomainsEnd = new ArrayList<>();
+    private static final ArrayList<String> blockedURLs = new ArrayList<>();
 
-    private static final String TAG = "GMapsWV";
+    private static final String TAG = "AppleMapsWV";
     private static LocationListener locationListenerGPS;
     private static final boolean canUseLocation = Build.VERSION.SDK_INT >= Build.VERSION_CODES.M;
     private static int locationRequestCount = 0;
@@ -97,7 +97,7 @@ public class MainActivity extends Activity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        String urlToLoad = "https://www.google.com/maps";
+        String urlToLoad = "https://maps.apple.com/";
         try {
             Intent intent = getIntent();
             Uri data = intent.getData();
@@ -105,7 +105,8 @@ public class MainActivity extends Activity {
             if (data.toString().startsWith("https://")) {
                 urlToLoad = data.toString();
             } else if (data.toString().startsWith("geo:")) {
-                urlToLoad = "https://www.google.com/maps/place/" + data.toString().substring(4);
+                //TODO add support for later
+                urlToLoad = "https://maps.apple.com/frame?center=" + data.toString().substring(4);
             }
         } catch (Exception e) {
             Log.d(TAG, "No or Invalid URL passed. Opening homepage instead.");
@@ -117,9 +118,11 @@ public class MainActivity extends Activity {
         //Set cookie options
         mapsCookieManager = CookieManager.getInstance();
         resetWebView(false);
-        mapsCookieManager.setAcceptCookie(true);
+        // As of right now, not accepting cookies works
+        mapsCookieManager.setAcceptCookie(false);
         mapsCookieManager.setAcceptThirdPartyCookies(mapsWebView, false);
-        mapsCookieManager.setCookie(".google.com", "SOCS=CAI;");
+        //Deprecated
+        CookieManager.setAcceptFileSchemeCookies(false);
         initURLs();
 
         //Lister for Link sharing
@@ -151,7 +154,7 @@ public class MainActivity extends Activity {
                         }
                     }
                 }
-                if (origin.contains("google.com")) {
+                if (origin.contains("apple.com")) {
                     callback.invoke(origin, true, false);
                 }
             }
@@ -164,6 +167,8 @@ public class MainActivity extends Activity {
                 if (request.getUrl().toString().equals("about:blank")) {
                     return null;
                 }
+                // TODO migrate to use URLUtil
+                // URLUtil.isHttpsUrl()
                 if (!request.getUrl().toString().startsWith("https://")) {
                     Log.d(TAG, "[shouldInterceptRequest][NON-HTTPS] Blocked access to " + request.getUrl().toString());
                     return new WebResourceResponse("text/javascript", "UTF-8", null); //Deny URLs that aren't HTTPS
@@ -211,19 +216,12 @@ public class MainActivity extends Activity {
                     startActivity(dial);
                     return true;
                 }
+                if (URLUtil.isJavaScriptUrl(request.getUrl().toString())) {
+                    Log.d(TAG, "[shouldOverrideUrlLoading] Blocked access to javascript URI" + request.getUrl().toString());
+                    return true; //Block loading javascript uris
+                }
                 if (!request.getUrl().toString().startsWith("https://")) {
                     Log.d(TAG, "[shouldOverrideUrlLoading][NON-HTTPS] Blocked access to " + request.getUrl().toString());
-                    if (request.getUrl().toString().startsWith("intent://maps.app.goo.gl/?link=")){
-                        String url = request.getUrl().toString();
-                        String encodedURL = url.split("intent://maps\\.app\\.goo\\.gl/\\?link=")[1];
-                        try {
-                            String decodedURL = URLDecoder.decode(encodedURL, "UTF-8");
-                            mapsWebView.loadUrl(decodedURL);
-                        } catch (UnsupportedEncodingException e) {
-                            throw new RuntimeException(e);
-                        }
-
-                    }
                     return true; //Deny URLs that aren't HTTPS
                 }
                 boolean allowed = false;
@@ -269,31 +267,13 @@ public class MainActivity extends Activity {
                 }
                 return false;
             }
-
-            @Override
-            public void onPageFinished(WebView view, String url) {
-                super.onPageFinished(view, url);
-                //Remove Banner
-                view.evaluateJavascript("var head = document.getElementsByTagName('head');\n" +
-                        "if (head.length > 0) {\n" +
-                        "    var style = document.createElement('style');\n" +
-                        "    style.setAttribute('type', 'text/css');\n" +
-                        "    style.textContent = `.ml-persistent-promo-banner {\n" +
-                        "        display: none !important;\n" +
-                        "    }\n" +
-                        "    #app {\n" +
-                        "        top: 0 !important\n" +
-                        "    }`;\n" +
-                        "    head[0].appendChild(style);\n" +
-                        "}",null);
-            }
         });
 
         //Set more options
         mapsWebSettings = mapsWebView.getSettings();
         //Enable some WebView features
         mapsWebSettings.setJavaScriptEnabled(true);
-        mapsWebSettings.setCacheMode(WebSettings.LOAD_DEFAULT);
+        mapsWebSettings.setCacheMode(WebSettings.LOAD_NO_CACHE);
         mapsWebSettings.setGeolocationEnabled(true);
         //Disable some WebView features
         mapsWebSettings.setAllowContentAccess(false);
@@ -303,12 +283,23 @@ public class MainActivity extends Activity {
         mapsWebSettings.setDisplayZoomControls(false);
         mapsWebSettings.setDomStorageEnabled(false);
         mapsWebSettings.setSaveFormData(false);
+        mapsWebSettings.setAllowUniversalAccessFromFileURLs(false);
+        mapsWebSettings.setJavaScriptCanOpenWindowsAutomatically(false);
+        mapsWebSettings.setSupportMultipleWindows(false);
+        mapsWebSettings.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            mapsWebSettings.setSafeBrowsingEnabled(false);
+        }
+        //Deprecated
+        mapsWebSettings.setAllowFileAccessFromFileURLs(false);
+        mapsWebSettings.setSavePassword(false);
+
         //Change the User-Agent
-        mapsWebSettings.setUserAgentString("Mozilla/5.0 (Linux; Unspecified Device) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/135.0.0.0 Mobile Safari/537.36");
+        //https://chromium.googlesource.com/chromium/src.git/+/HEAD/docs/ios/user_agent.md
+        mapsWebSettings.setUserAgentString("Mozilla/5.0 (iPhone; CPU iPhone OS 18_3_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) CriOS/134.0.6998.99 Mobile/15E148 Safari/604.");
 
         //Load Google Maps
         mapsWebView.loadUrl(urlToLoad);
-        if (GithubStar.shouldShowStarDialog(this)) GithubStar.starDialog(this, "https://github.com/woheller69/maps");
     }
 
     @Override
@@ -335,6 +326,7 @@ public class MainActivity extends Activity {
     }
 
     private void resetWebView(boolean exit) {
+        mapsWebView.stopLoading();
         mapsWebView.clearFormData();
         mapsWebView.clearHistory();
         mapsWebView.clearMatches();
@@ -343,8 +335,12 @@ public class MainActivity extends Activity {
         mapsCookieManager.removeSessionCookie();
         mapsCookieManager.removeAllCookie();
         CookieManager.getInstance().removeAllCookies(null);
+        CookieManager.getInstance().removeSessionCookies(null);
         CookieManager.getInstance().flush();
         WebStorage.getInstance().deleteAllData();
+        WebViewDatabase.getInstance(context).clearFormData();
+        // Probably not necessary
+        WebViewDatabase.getInstance(context).clearHttpAuthUsernamePassword();
         if (exit) {
             mapsWebView.loadUrl("about:blank");
             mapsWebView.removeAllViews();
@@ -357,47 +353,29 @@ public class MainActivity extends Activity {
 
     private static void initURLs() {
         //Allowed Domains
-        allowedDomains.add("apis.google.com");
-        allowedDomains.add("consent.google.com");
-        allowedDomains.add("fonts.gstatic.com");
-        allowedDomains.add("google.com");
-        allowedDomains.add("khms0.google.com");
-        allowedDomains.add("khms1.google.com");
-        allowedDomains.add("khms2.google.com");
-        allowedDomains.add("khms3.google.com");
-        allowedDomains.add("maps.app.goo.gl");
-        allowedDomains.add("maps.google.com");
-        allowedDomains.add("maps.gstatic.com");
-        allowedDomains.add("ssl.gstatic.com");
-        allowedDomains.add("streetviewpixels-pa.googleapis.com");
-        allowedDomains.add("www.google.com");
-        allowedDomains.add("www.gstatic.com");
-        allowedDomainsStart.add("consent.google."); //TODO: better cctld handling
-        allowedDomainsEnd.add(".googleusercontent.com");
+        allowedDomains.add("maps.apple.com");
+        allowedDomains.add("cdn.apple-mapkit.com");
+        allowedDomainsEnd.add(".mzstatic.com");
+
+        //TODO Add a setting for allowing/blocking 3rd party domains
+        allowedDomainsEnd.add(".4sqi.net");
+        // example: https://media-cdn.tripadvisor.com/media/photo-o/2a/45/2c/80/crazy-about-you.jpg
+        allowedDomains.add("media-cdn.tripadvisor.com");
+        // example: https://s3-media0.fl.yelpcdn.com/bphoto/H9Of-lnb-ZAlmQKgFiMacQ/o.jpg
+        allowedDomainsEnd.add(".fl.yelpcdn.com");
+        // example: https://images.otstatic.com/prod1/49200509/3/huge.jpg
+        allowedDomains.add("images.otstatic.com");
+        allowedDomains.add("resizer.otstatic.com");
 
         //Blocked Domains
-        blockedURLs.add("analytics.google.com");
-        blockedURLs.add("clientmetrics-pa.googleapis.com");
-        blockedURLs.add("doubleclick.com");
-        blockedURLs.add("doubleclick.net");
-        blockedURLs.add("googleadservices.com");
-        blockedURLs.add("google-analytics.com");
-        blockedURLs.add("googlesyndication.com");
-        blockedURLs.add("tpc.googlesyndication.com");
-        blockedURLs.add("pagead.l.google.com");
-        blockedURLs.add("partnerad.l.google.com");
-        blockedURLs.add("video-stats.video.google.com");
-        blockedURLs.add("wintricksbanner.googlepages.com");
-        blockedURLs.add("www-google-analytics.l.google.com");
-        blockedURLs.add("gstaticadssl.l.google.com");
-        blockedURLs.add("csp.withgoogle.com");
+        blockedURLs.add("gsp10.apple-mapkit.com");
+        blockedURLs.add("xp.apple.com");
 
         //Blocked URLs
-        blockedURLs.add("google.com/maps/preview/log204");
-        blockedURLs.add("google.com/gen_204");
-        blockedURLs.add("play.google.com/log");
-        blockedURLs.add("/gen_204?");
-        blockedURLs.add("/log204?");
+        blockedURLs.add("maps.apple.com/data/performanceAnalytics");
+        blockedURLs.add("maps.apple.com/data/analyticsStatus");
+        blockedURLs.add("/mw/v1/reportAnalytics");
+        blockedURLs.add("/reportAnalytics");
     }
 
     private LocationListener getNewLocationListener() {
@@ -435,6 +413,7 @@ public class MainActivity extends Activity {
             @Override
             public void onPrimaryClipChanged() {
                 String url = mapsWebView.getUrl();
+                // TODO check the regex
                 String regex = "@(-?d*\\d+.\\d+),(-?d*\\d+.\\d+)";
                 Pattern p = Pattern.compile(regex);
                 Matcher m = p.matcher(url);
