@@ -355,6 +355,7 @@ public class MainActivity extends Activity {
         //Allowed Domains
         allowedDomains.add("maps.apple.com");
         allowedDomains.add("cdn.apple-mapkit.com");
+        allowedDomains.add("sat-cdn.apple-mapkit.com");
         allowedDomainsEnd.add(".mzstatic.com");
 
         //TODO Add a setting for allowing/blocking 3rd party domains
@@ -367,6 +368,11 @@ public class MainActivity extends Activity {
         allowedDomains.add("images.otstatic.com");
         allowedDomains.add("resizer.otstatic.com");
 
+        // TODO figure out what gspe21-ssl.ls.apple.com is for
+        
+        //TODO add support for allowed URLs
+        // example: https://is1-ssl.mzstatic.com and https://is3-ssl.mzstatic.com -> *-ssl.mzstatic.com
+        
         //Blocked Domains
         blockedURLs.add("gsp10.apple-mapkit.com");
         blockedURLs.add("xp.apple.com");
@@ -376,6 +382,8 @@ public class MainActivity extends Activity {
         blockedURLs.add("maps.apple.com/data/analyticsStatus");
         blockedURLs.add("/mw/v1/reportAnalytics");
         blockedURLs.add("/reportAnalytics");
+        blockedURLs.add("/report/2/xp_amp_web_perf_log");
+        blockedURLs.add("/xp_amp_web_perf_log");
     }
 
     private LocationListener getNewLocationListener() {
