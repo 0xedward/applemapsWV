@@ -8,10 +8,13 @@ Features
 - Blocks access to Apple trackers
 - Restricts all network requests to HTTPS
 - Allows toggling of location permission
+- Blocks multi-window and window.open()
+- Safebrowsing API is turned off
 
 Downsides
 ---------
 - No cache is used and resources are always loaded from network, so loads may be slow in poor network conditions
+- Many links will not prompt for the user to open due to Apple Maps not using https (e.g. `http://www.tripadvisor.com/AppleMapsAction` and `https://yelp.com/apple_maps_action`)
 
 Credits
 -------
