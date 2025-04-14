@@ -61,6 +61,7 @@ public class MainActivity extends Activity {
     private static final ArrayList<String> allowedDomains = new ArrayList<>();
     private static final ArrayList<String> allowedDomainsStart = new ArrayList<>();
     private static final ArrayList<String> allowedDomainsEnd = new ArrayList<>();
+    private static final ArrayList<String> allowedURLs = new ArrayList<>();
     private static final ArrayList<String> blockedURLs = new ArrayList<>();
 
     private static final String TAG = "AppleMapsWV";
@@ -168,8 +169,9 @@ public class MainActivity extends Activity {
                     return null;
                 }
                 // TODO migrate to use URLUtil
-                // URLUtil.isHttpsUrl()
-                if (!request.getUrl().toString().startsWith("https://")) {
+                if (!URLUtil.isHttpsUrl(request.getUrl().toString())) {
+                // if (!request.getUrl().toString().startsWith("https://")) {
+                    //TODO implement try to upgrade http to https and block the request if it fails
                     Log.d(TAG, "[shouldInterceptRequest][NON-HTTPS] Blocked access to " + request.getUrl().toString());
                     return new WebResourceResponse("text/javascript", "UTF-8", null); //Deny URLs that aren't HTTPS
                 }
@@ -189,17 +191,18 @@ public class MainActivity extends Activity {
                         allowed = true;
                     }
                 }
+                for (String url : allowedURLs) {
+                    if (request.getUrl().toString().contains(url)) {
+                        allowed = true;
+                    }
+                }
                 if (!allowed) {
                     Log.d(TAG, "[shouldInterceptRequest][NOT ON ALLOWLIST] Blocked access to " + request.getUrl().getHost());
                     return new WebResourceResponse("text/javascript", "UTF-8", null); //Deny URLs not on ALLOWLIST
                 }
                 for (String url : blockedURLs) {
                     if (request.getUrl().toString().contains(url)) {
-                        if (request.getUrl().toString().contains("/log204?")) {
-                            Log.d(TAG, "[shouldInterceptRequest][ON DENYLIST] Blocked access to a log204 request");
-                        } else {
-                            Log.d(TAG, "[shouldInterceptRequest][ON DENYLIST] Blocked access to " + request.getUrl().toString());
-                        }
+                        Log.d(TAG, "[shouldInterceptRequest][ON DENYLIST] Blocked access to " + request.getUrl().toString());
                         return new WebResourceResponse("text/javascript", "UTF-8", null); //Deny URLs on DENYLIST
                     }
                 }
@@ -237,6 +240,11 @@ public class MainActivity extends Activity {
                 }
                 for (String url : allowedDomainsEnd) {
                     if (request.getUrl().getHost().endsWith(url)) {
+                        allowed = true;
+                    }
+                }
+                for (String url : allowedURLs) {
+                    if (request.getUrl().toString().contains(url)) {
                         allowed = true;
                     }
                 }
@@ -356,9 +364,13 @@ public class MainActivity extends Activity {
         allowedDomains.add("maps.apple.com");
         allowedDomains.add("cdn.apple-mapkit.com");
         allowedDomains.add("sat-cdn.apple-mapkit.com");
-        allowedDomainsEnd.add(".mzstatic.com");
 
-        //TODO Add a setting for allowing/blocking 3rd party domains
+        //TODO Add a setting for allowing/blocking 3rd party domains at activitystart for each new activity
+        // 3p domains
+
+        // For loading images
+        // example: https://is1-ssl.mzstatic.com and https://is3-ssl.mzstatic.com
+        allowedDomainsEnd.add("-ssl.mzstatic.com");
         allowedDomainsEnd.add(".4sqi.net");
         // example: https://media-cdn.tripadvisor.com/media/photo-o/2a/45/2c/80/crazy-about-you.jpg
         allowedDomains.add("media-cdn.tripadvisor.com");
@@ -368,11 +380,16 @@ public class MainActivity extends Activity {
         allowedDomains.add("images.otstatic.com");
         allowedDomains.add("resizer.otstatic.com");
 
-        // TODO figure out what gspe21-ssl.ls.apple.com is for
-        
-        //TODO add support for allowed URLs
-        // example: https://is1-ssl.mzstatic.com and https://is3-ssl.mzstatic.com -> *-ssl.mzstatic.com
-        
+        // for clicking on "More" under a review under "Ratings & Reviews"
+        allowedURLs.add("https://yelp.com/apple_maps_action");
+        allowedURLs.add("https://www.tripadvisor.com/AppleMapsAction");
+
+        // for loading platform (e.g. yelp) icons under the review summary (e.g. 4.5 stars with 40 reviews)
+        allowedDomains.add("gspe21-ssl.ls.apple.com");
+
+        // TODO figure out what is for
+//        cdn.parkopedia.com
+
         //Blocked Domains
         blockedURLs.add("gsp10.apple-mapkit.com");
         blockedURLs.add("xp.apple.com");
