@@ -54,7 +54,6 @@ public class MainActivity extends Activity {
 
     private WebView mapsWebView = null;
     private WebSettings mapsWebSettings = null;
-    private CookieManager mapsCookieManager = null;
     private final Context context = this;
     private LocationManager locationManager;
 
@@ -66,25 +65,21 @@ public class MainActivity extends Activity {
 
     private static final String TAG = "AppleMapsWV";
     private static LocationListener locationListenerGPS;
-    private static final boolean canUseLocation = Build.VERSION.SDK_INT >= Build.VERSION_CODES.M;
     private static int locationRequestCount = 0;
 
     @Override
     protected void onPause() {
         super.onPause();
-        if (canUseLocation && locationListenerGPS != null) removeLocationListener();
+        if (locationListenerGPS != null) removeLocationListener();
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-
-        if (canUseLocation) {
-            locationListenerGPS = getNewLocationListener();
-            locationManager = (LocationManager) context.getSystemService(Context.LOCATION_SERVICE);
-            if (checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
-                locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000, 0, locationListenerGPS);
-            }
+        locationListenerGPS = getNewLocationListener();
+        locationManager = (LocationManager) context.getSystemService(Context.LOCATION_SERVICE);
+        if (checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED) {
+            locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 1000, 0, locationListenerGPS);
         }
     }
 
@@ -117,11 +112,10 @@ public class MainActivity extends Activity {
         mapsWebView = findViewById(R.id.mapsWebView);
 
         //Set cookie options
-        mapsCookieManager = CookieManager.getInstance();
         resetWebView(false);
         // As of right now, not accepting cookies works
-        mapsCookieManager.setAcceptCookie(false);
-        mapsCookieManager.setAcceptThirdPartyCookies(mapsWebView, false);
+        CookieManager.getInstance().setAcceptCookie(false);
+        CookieManager.getInstance().setAcceptThirdPartyCookies(mapsWebView, false);
         //Deprecated
         CookieManager.setAcceptFileSchemeCookies(false);
         initURLs();
@@ -132,27 +126,25 @@ public class MainActivity extends Activity {
         //Give location access
         mapsWebView.setWebChromeClient(new WebChromeClient() {
             public void onGeolocationPermissionsShowPrompt(String origin, GeolocationPermissions.Callback callback) {
-                if (canUseLocation) {
-                    if (checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
-                        if(locationRequestCount < 2) { //Don't annoy the user
-                            new AlertDialog.Builder(context)
-                                    .setTitle(R.string.title_location_permission)
-                                    .setMessage(R.string.text_location_permission)
-                                    .setNegativeButton(android.R.string.no, (dialogInterface, i) -> {
-                                        //Disable prompts
-                                        locationRequestCount = 100;
-                                    }).setPositiveButton(android.R.string.ok, (dialogInterface, i) -> {
-                                        //Prompt the user once explanation has been shown
-                                        requestPermissions(new String[]{Manifest.permission.ACCESS_COARSE_LOCATION, Manifest.permission.ACCESS_FINE_LOCATION}, 100);
-                                    })
-                                    .create()
-                                    .show();
-                        }
-                        locationRequestCount++;
-                    } else {
-                        if (!locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
-                            Toast.makeText(context, R.string.error_no_gps, Toast.LENGTH_LONG).show();
-                        }
+                if (checkSelfPermission(Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED) {
+                    if (locationRequestCount < 2) { //Don't annoy the user
+                        new AlertDialog.Builder(context)
+                                .setTitle(R.string.title_location_permission)
+                                .setMessage(R.string.text_location_permission)
+                                .setNegativeButton(android.R.string.no, (dialogInterface, i) -> {
+                                    //Disable prompts
+                                    locationRequestCount = 100;
+                                }).setPositiveButton(android.R.string.ok, (dialogInterface, i) -> {
+                                    //Prompt the user once explanation has been shown
+                                    requestPermissions(new String[]{Manifest.permission.ACCESS_COARSE_LOCATION, Manifest.permission.ACCESS_FINE_LOCATION}, 100);
+                                })
+                                .create()
+                                .show();
+                    }
+                    locationRequestCount++;
+                } else {
+                    if (!locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
+                        Toast.makeText(context, R.string.error_no_gps, Toast.LENGTH_LONG).show();
                     }
                 }
                 if (origin.contains("apple.com")) {
@@ -290,17 +282,13 @@ public class MainActivity extends Activity {
         mapsWebSettings.setDatabaseEnabled(false);
         mapsWebSettings.setDisplayZoomControls(false);
         mapsWebSettings.setDomStorageEnabled(false);
-        mapsWebSettings.setSaveFormData(false);
         mapsWebSettings.setAllowUniversalAccessFromFileURLs(false);
         mapsWebSettings.setJavaScriptCanOpenWindowsAutomatically(false);
         mapsWebSettings.setSupportMultipleWindows(false);
         mapsWebSettings.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            mapsWebSettings.setSafeBrowsingEnabled(false);
-        }
+        mapsWebSettings.setSafeBrowsingEnabled(false);
         //Deprecated
         mapsWebSettings.setAllowFileAccessFromFileURLs(false);
-        mapsWebSettings.setSavePassword(false);
 
         //Change the User-Agent
         //https://chromium.googlesource.com/chromium/src.git/+/HEAD/docs/ios/user_agent.md
@@ -340,13 +328,10 @@ public class MainActivity extends Activity {
         mapsWebView.clearMatches();
         mapsWebView.clearSslPreferences();
         mapsWebView.clearCache(true);
-        mapsCookieManager.removeSessionCookie();
-        mapsCookieManager.removeAllCookie();
         CookieManager.getInstance().removeAllCookies(null);
         CookieManager.getInstance().removeSessionCookies(null);
         CookieManager.getInstance().flush();
         WebStorage.getInstance().deleteAllData();
-        WebViewDatabase.getInstance(context).clearFormData();
         // Probably not necessary
         WebViewDatabase.getInstance(context).clearHttpAuthUsernamePassword();
         if (exit) {
@@ -368,7 +353,7 @@ public class MainActivity extends Activity {
         //TODO Add a setting for allowing/blocking 3rd party domains at activitystart for each new activity
         // 3p domains
 
-        // For loading images
+        // For loading images from yelp, tripadvisor and foursquare
         // example: https://is1-ssl.mzstatic.com and https://is3-ssl.mzstatic.com
         allowedDomainsEnd.add("-ssl.mzstatic.com");
         allowedDomainsEnd.add(".4sqi.net");
@@ -381,8 +366,8 @@ public class MainActivity extends Activity {
         allowedDomains.add("resizer.otstatic.com");
 
         // for clicking on "More" under a review under "Ratings & Reviews"
-        allowedURLs.add("https://yelp.com/apple_maps_action");
-        allowedURLs.add("https://www.tripadvisor.com/AppleMapsAction");
+//        allowedURLs.add("https://yelp.com/apple_maps_action");
+//        allowedURLs.add("https://www.tripadvisor.com/AppleMapsAction");
 
         // for loading platform (e.g. yelp) icons under the review summary (e.g. 4.5 stars with 40 reviews)
         allowedDomains.add("gspe21-ssl.ls.apple.com");
@@ -438,16 +423,18 @@ public class MainActivity extends Activity {
             @Override
             public void onPrimaryClipChanged() {
                 String url = mapsWebView.getUrl();
-                // TODO check the regex
-                String regex = "@(-?d*\\d+.\\d+),(-?d*\\d+.\\d+)";
-                Pattern p = Pattern.compile(regex);
-                Matcher m = p.matcher(url);
-                if (m.find()) {
-                    String latlon = m.group(1) + "," + m.group(2);
-                    try {
-                        startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse("geo:" + latlon + "?q=" + latlon)));
-                    } catch (ActivityNotFoundException ignored) {
-                        Toast.makeText(context, R.string.no_app_installed, Toast.LENGTH_SHORT).show();
+                if (url != null) {
+                    // TODO check the regex
+                    String regex = "@(-?d*\\d+.\\d+),(-?d*\\d+.\\d+)";
+                    Pattern p = Pattern.compile(regex);
+                    Matcher m = p.matcher(url);
+                    if (m.find()) {
+                        String latlon = m.group(1) + "," + m.group(2);
+                        try {
+                            startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse("geo:" + latlon + "?q=" + latlon)));
+                        } catch (ActivityNotFoundException ignored) {
+                            Toast.makeText(context, R.string.no_app_installed, Toast.LENGTH_SHORT).show();
+                        }
                     }
                 }
             }

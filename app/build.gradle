@@ -4,10 +4,10 @@ android {
     compileSdk 34
     defaultConfig {
         applicationId "wv.applemaps"
-        minSdkVersion 21
+        minSdkVersion 26
         targetSdk 34
-        versionCode 40
-        versionName "0.0.1"
+        versionCode 2
+        versionName "0.0.2-alpha"
     }
     buildTypes {
         debug {
